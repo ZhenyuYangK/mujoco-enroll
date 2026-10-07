@@ -73,6 +73,15 @@ def provision(client, config, login, sleep=time.sleep):
             repo = client.api("GET", endpoint, missing_ok=True)
             if repo is None:
                 raise error
+        # Template generation can return before template_repository is populated.
+        # Read the canonical repository before checking its identity or granting access.
+        for attempt in range(30):
+            repo = client.api("GET", endpoint, missing_ok=True)
+            if repo and repo.get("template_repository"):
+                break
+            sleep(2)
+        else:
+            raise RuntimeError("Template identity is still being prepared; retry the same issue")
     validate_existing(repo, template, marker, config["private"])
     for attempt in range(30):
         branch = client.api("GET", endpoint + "/branches/main", missing_ok=True)

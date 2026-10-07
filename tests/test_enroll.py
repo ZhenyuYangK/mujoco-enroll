@@ -73,6 +73,68 @@ class EnrollmentTests(unittest.TestCase):
             provision(client, CONFIG, "alice", sleep=lambda _: None)
         self.assertFalse(any(method != "GET" for method, _, _ in client.calls))
 
+    def test_generation_response_does_not_need_template_metadata(self):
+        class IncompleteResponse(FakeGitHub):
+            def api(self, method, endpoint, data=None, missing_ok=False):
+                result = super().api(method, endpoint, data, missing_ok)
+                if endpoint.endswith("/generate"):
+                    result = {key: value for key, value in result.items()
+                              if key != "template_repository"}
+                return result
+
+        client = IncompleteResponse()
+        provision(client, CONFIG, "alice", sleep=lambda _: None)
+        self.assertEqual(client.variable["value"], "alice")
+
+    def test_waits_for_canonical_template_metadata(self):
+        class DelayedMetadata(FakeGitHub):
+            reads = 0
+
+            def api(self, method, endpoint, data=None, missing_ok=False):
+                result = super().api(method, endpoint, data, missing_ok)
+                if method == "GET" and result is self.repo and self.repo is not None:
+                    self.reads += 1
+                    if self.reads == 1:
+                        return None
+                    if self.reads == 2:
+                        return {key: value for key, value in result.items()
+                                if key != "template_repository"}
+                return result
+
+        client = DelayedMetadata()
+        waits = []
+        provision(client, CONFIG, "alice", sleep=waits.append)
+        self.assertEqual(waits, [2, 2])
+        self.assertEqual(client.variable["value"], "alice")
+
+    def test_unavailable_template_metadata_does_not_grant_access(self):
+        class MissingMetadata(FakeGitHub):
+            def api(self, method, endpoint, data=None, missing_ok=False):
+                result = super().api(method, endpoint, data, missing_ok)
+                if endpoint.endswith("/generate"):
+                    self.repo.pop("template_repository")
+                return result
+
+        client = MissingMetadata()
+        with self.assertRaisesRegex(RuntimeError, "Template identity"):
+            provision(client, CONFIG, "alice", sleep=lambda _: None)
+        self.assertFalse(any(method != "GET" and not path.endswith("/generate")
+                             for method, path, _ in client.calls))
+
+    def test_canonical_foreign_identity_is_rejected_after_generation(self):
+        class ForeignMetadata(FakeGitHub):
+            def api(self, method, endpoint, data=None, missing_ok=False):
+                result = super().api(method, endpoint, data, missing_ok)
+                if endpoint.endswith("/generate"):
+                    self.repo["template_repository"] = {"full_name": "someone/other"}
+                return result
+
+        client = ForeignMetadata()
+        with self.assertRaises(ValueError):
+            provision(client, CONFIG, "alice", sleep=lambda _: None)
+        self.assertFalse(any(method != "GET" and not path.endswith("/generate")
+                             for method, path, _ in client.calls))
+
     def test_foreign_student_is_untouched(self):
         client = FakeGitHub()
         provision(client, CONFIG, "alice", sleep=lambda _: None)
