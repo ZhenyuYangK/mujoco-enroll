@@ -1,0 +1,24 @@
+name: 领取 MuJoCo 学习仓库
+description: 为当前 GitHub 账号创建独立练习仓库
+title: "[领取] MuJoCo 学习仓库"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        机器人使用本 Issue 的作者账号创建仓库，无需填写账号或密码。
+        提交后等待回复，接受邀请，再进入仓库学习。
+  - type: dropdown
+    id: course
+    attributes:
+      label: 课程
+      options:
+        - MuJoCo 从零到开发代码阅读
+    validations:
+      required: true
+  - type: checkboxes
+    id: agreement
+    attributes:
+      label: 学习约定
+      options:
+        - label: 我将完成练习并通过 push 到 main 提交。
+          required: true

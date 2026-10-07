@@ -1,0 +1,12 @@
+{
+  "owner": "ZhenyuYangK",
+  "enroll_repo": "mujoco-enroll",
+  "template_repo": "mujoco-learning-template",
+  "repo_prefix": "mujoco-learning",
+  "title": "MuJoCo 从零到开发代码阅读",
+  "legacy_titles": [
+    "MuJoCo 基础与机器人仿真"
+  ],
+  "private": false,
+  "enrollment_open": true
+}

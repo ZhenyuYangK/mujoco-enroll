@@ -1,0 +1,28 @@
+name: 领取 MuJoCo 学习仓库
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 重试的申请 Issue 编号
+        required: true
+        type: string
+permissions:
+  contents: read
+  issues: write
+jobs:
+  enroll:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - name: 创建仓库、配置身份并发送邀请
+        env:
+          ENROLL_GITHUB_TOKEN: ${{ secrets.ENROLL_GITHUB_TOKEN }}
+          ISSUE_TOKEN: ${{ github.token }}
+          RETRY_ISSUE_NUMBER: ${{ inputs.issue_number }}
+        run: python3 enroll.py
